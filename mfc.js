@@ -1,4 +1,4 @@
-AccessNode = require("./AccessNode.js");
+AccessNode = require("./MFCAccessNode.js");
 
 
 
@@ -68,13 +68,17 @@ class MFC {
         this.order_nummer = 0;
 
         this.greifer = new Robot("greifarm","serial",this.handle_greifer.bind(this),Robot.isWaiting);
-        this.befueller = new Robot("befueller","serial",this.handle_befueller.bind(this),Robot.isWaiting);
-        this.bedeckler = new Robot("bedeckler","serial",this.handle_bedeckler.bind(this),Robot.isWaiting);
-        //this.greifer = new Robot("greifarm","serial",this.handle_greifer.bind(this),Robot.isWaiting);
-
         this.register(this.greifer);
+
+        this.befueller = new Robot("befueller","serial",this.handle_befueller.bind(this),Robot.isWaiting);
         this.register(this.befueller);
+
+        this.bedeckler = new Robot("bedeckler","serial",this.handle_bedeckler.bind(this),Robot.isWaiting);
         this.register(this.bedeckler);
+
+        this.aufzug = new Robot("aufzug","serial",this.handle_aufzug.bind(this),Robot.isWaiting);
+        this.register(this.aufzug);
+
     }
 
     setRic(ric) {
@@ -174,7 +178,7 @@ class MFC {
             this.befueller.wait();
             
             if (this.greifer.status == Robot.isWaitingNext) {
-                this.greifer.next_to(this.befueller);
+                this.greifer.move_next_to(this.befueller);
 
                 this.greifer.run_next();
 
@@ -201,7 +205,7 @@ class MFC {
             this.bedeckler.wait();
             
             if (this.befueller.status == Robot.isWaitingNext) {
-                this.befueller.next_to(this.bedeckler);
+                this.befueller.move_next_to(this.bedeckler);
 
                 this.befueller.run_next();
 
@@ -211,12 +215,41 @@ class MFC {
         } else if (message == "NEXT") {
             this.bedeckler.wait_next();
 
-            //TEst
-            this.bedeckler.run_next();
+            if (this.aufzug.status == Robot.isWaiting) {
+                this.bedeckler.move_next_to(this.aufzug);
+
+                this.bedeckler.run_next();
+
+                this.aufzug.run();
+            }
             
         }
 
     }
+
+    handle_aufzug(message) {
+
+        if (message == "OK") {
+
+            this.aufzug.wait();
+            
+            if (this.bedeckler.status == Robot.isWaitingNext) {
+                this.bedeckler.move_next_to(this.aufzug);
+
+                this.bedeckler.run_next();
+
+                this.aufzug.run();
+            }
+
+        } else if (message == "NEXT") {
+            this.aufzug.wait_next();
+
+            this.aufzug.run_next();
+        }
+
+    }
+
+
 }
 
 let mfc = new MFC();
