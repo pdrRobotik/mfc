@@ -39,7 +39,7 @@ class RobotikInterConnect {
     }
 
     close_connection() {
-        alert("Connection is closed...");
+        console.error("Connection is closed...");
     }
 
     parse_message(msg_data) {
@@ -92,6 +92,7 @@ class RobotikInterConnect {
         this.check(targetgroup, "TargetGroup");
         this.check(message,"Message");
 
+        //console.log(target+"@"+targetgroup+":"+message);
         this.websocket.send(target+"@"+targetgroup+":"+message);
     }
 

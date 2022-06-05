@@ -3,12 +3,19 @@ AccessNode = require("./AccessNode.js");
 const isWaiting = 0;
 const isRunning = 1;
 const isWaitingNext = 2;
+const isRunningNext = 3;
 
 class MFC {
     constructor() {
         this.bestell_queque = [];
         this.order_nummer = 0;
         this.statusGreifer = isWaiting;
+        this.order_greifer = null;
+        this.order_greifer_next = null;
+
+        this.statusBefueller = isWaiting;
+        this.order_befueller = null;
+        this.order_befueller_next = null;
 
         this.ric = null;
         this.handlersWebsocket = new Map();
@@ -17,6 +24,7 @@ class MFC {
         this.register_websocket("bestell",this.handle_bestell.bind(this));
 
         this.register_serial("greifarm",this.handle_greifer.bind(this));
+        this.register_serial("befueller",this.handle_befueller.bind(this));
 
     }
 
@@ -60,6 +68,7 @@ class MFC {
                 this.order_nummer++;
 
                 let order = this.bestell_queque.shift();
+                this.order_greifer = order;
 
                 this.statusGreifer = isRunning;
                 this.ric.send("greifarm","serial",order.color);
@@ -68,6 +77,7 @@ class MFC {
                 this.ric.send("bestell","websocket", this.order_nummer);
                 this.order_nummer++;
 
+                this.order_greifer = order;
                 this.statusGreifer = isRunning;
                 this.ric.send("greifarm","serial",order.color);
             }
@@ -85,17 +95,46 @@ class MFC {
             if (this.bestell_queque.length > 0) {
                 let order = this.bestell_queque.shift();
 
+                this.order_greifer = order;
                 this.statusGreifer = isRunning;
                 this.ric.send("greifarm","serial",order.color);
             }
         } else if (message == "NEXT") {
             this.statusGreifer = isWaitingNext;
+            this.order_greifer_next = this.order_greifer;
+            this.order_greifer = null;
 
-            //TestWeise Direkt
-            this.ric.send("greifarm","serial","GO");
+            if (this.statusBefueller == isWaiting) {
+                this.order_befueller = this.order_greifer_next;
+                this.order_greifer_next == null;
+
+                this.ric.send("greifarm","serial","GO");
+                this.statusGreifer = isRunningNext;
+            }
+
         }
     }
 
+    handle_befueller(message) {
+        if (message == "OK") {
+            this.statusBefueller = isWaiting;
+            
+            if (this.statusGreifer == isWaitingNext && this.order_greifer_next != null) {
+
+                this.order_befueller = this.order_greifer_next;
+                this.order_greifer_next == null;
+
+                this.ric.send("greifarm","serial","GO");
+                this.statusGreifer = isRunningNext;
+            }
+
+        } else if (message == "NEXT") {
+            this.statusBefueller = isWaitingNext;
+
+            this.ric.send("befueller","serial","GO");
+            this.statusBefueller = isRunningNext;
+        }
+    }
     
 }
 
