@@ -1,39 +1,93 @@
 AccessNode = require("./AccessNode.js");
 
-const isWaiting = 0;
-const isRunning = 1;
-const isWaitingNext = 2;
-const isRunningNext = 3;
+
+
+class Robot {
+
+    constructor(name,group,handler,status) {
+        this.mfc = null;
+
+        this.status = status;
+        this.name = name;
+        this.group = group;
+        
+        this.order = null;
+        this.order_next = null;
+
+        this.handler = handler;
+    }
+
+    setMFC(mfc) {
+        this.mfc = mfc;
+    }
+
+    run(message="GO") {
+        this.status = Robot.isRunning;
+        this.mfc.ric.send(this.name,this.group,message);
+    }
+
+    run_next(message="GO") {
+        this.status = Robot.isRunningNext;
+        this.mfc.ric.send(this.name,this.group,message);
+    }
+
+    move_next_to(robot) {
+        robot.order = this.order_next;
+        this.order_next = null;
+    }
+
+    //Set status
+    wait() {
+        this.status = Robot.isWaiting;
+    }
+
+    wait_next() {
+        this.status = Robot.isWaitingNext;
+
+        this.order_next = this.order;
+        this.order = null; 
+    }
+
+}
+
+Robot.isWaiting = 0;
+Robot.isRunning = 1;
+Robot.isWaitingNext = 2;
+Robot.isRunningNext = 3;
 
 class MFC {
     constructor() {
-        this.bestell_queque = [];
-        this.order_nummer = 0;
-        this.statusGreifer = isWaiting;
-        this.order_greifer = null;
-        this.order_greifer_next = null;
-
-        this.statusBefueller = isWaiting;
-        this.order_befueller = null;
-        this.order_befueller_next = null;
-
         this.ric = null;
         this.handlersWebsocket = new Map();
         this.handlersSerial = new Map();
 
         this.register_websocket("bestell",this.handle_bestell.bind(this));
 
-        this.register_serial("greifarm",this.handle_greifer.bind(this));
-        this.register_serial("befueller",this.handle_befueller.bind(this));
 
+        this.bestell_queque = [];
+        this.order_nummer = 0;
+
+        this.greifer = new Robot("greifarm","serial",this.handle_greifer.bind(this),Robot.isWaiting);
+        this.befueller = new Robot("befueller","serial",this.handle_befueller.bind(this),Robot.isWaiting);
+        this.bedeckler = new Robot("bedeckler","serial",this.handle_bedeckler.bind(this),Robot.isWaiting);
+        //this.greifer = new Robot("greifarm","serial",this.handle_greifer.bind(this),Robot.isWaiting);
+
+        this.register(this.greifer);
+        this.register(this.befueller);
+        this.register(this.bedeckler);
     }
 
     setRic(ric) {
         this.ric = ric;
     }
 
-    register_serial(name,handler) {
-        this.handlersSerial.set(name,handler);
+    register(robot) {
+        if (robot.group == "serial")
+            this.handlersSerial.set(robot.name,robot.handler);
+        if (robot.group == "websocket")
+            this.handlersWebsocket.set(robot.name,robot.handler);
+
+        robot.setMFC(this);
     }
 
     register_websocket(name,handler) {
@@ -61,27 +115,29 @@ class MFC {
     
 
     handle_bestell(message) {
-        if (this.statusGreifer == isWaiting) {
+        
+        if (this.greifer.status == Robot.isWaiting) {
+
             if (this.bestell_queque.length > 0) {
                 this.bestell_queque.push({id: this.order_nummer, color: message});
                 this.ric.send("bestell","websocket", this.order_nummer);
                 this.order_nummer++;
 
                 let order = this.bestell_queque.shift();
-                this.order_greifer = order;
+                this.greifer.order = order;
 
-                this.statusGreifer = isRunning;
-                this.ric.send("greifarm","serial",order.color);
+                this.greifer.run(order.color);
             } else {
                 let order = {id: this.order_nummer, color: message};
                 this.ric.send("bestell","websocket", this.order_nummer);
                 this.order_nummer++;
 
-                this.order_greifer = order;
-                this.statusGreifer = isRunning;
-                this.ric.send("greifarm","serial",order.color);
+                this.greifer.order = order;
+                
+                this.greifer.run(order.color);
             }
-        } else if (this.statusGreifer == isRunning) {
+        } else {
+
             this.bestell_queque.push({id: this.order_nummer, color: message})
             this.ric.send("bestell","websocket", this.order_nummer);
             this.order_nummer++;
@@ -90,26 +146,24 @@ class MFC {
 
     handle_greifer(message) {
         if (message == "OK") {
-            this.statusGreifer = isWaiting;
+            this.greifer.wait();
 
             if (this.bestell_queque.length > 0) {
                 let order = this.bestell_queque.shift();
 
-                this.order_greifer = order;
-                this.statusGreifer = isRunning;
-                this.ric.send("greifarm","serial",order.color);
+                this.greifer.order = order;
+                
+                this.greifer.run(order.color);
             }
         } else if (message == "NEXT") {
-            this.statusGreifer = isWaitingNext;
-            this.order_greifer_next = this.order_greifer;
-            this.order_greifer = null;
+            this.greifer.wait_next();
 
-            if (this.statusBefueller == isWaiting) {
-                this.order_befueller = this.order_greifer_next;
-                this.order_greifer_next == null;
+            if (this.befueller.status == Robot.isWaiting) {
+                this.greifer.move_next_to(this.befueller);
 
-                this.ric.send("greifarm","serial","GO");
-                this.statusGreifer = isRunningNext;
+                this.greifer.run_next();
+
+                this.befueller.run();
             }
 
         }
@@ -117,25 +171,52 @@ class MFC {
 
     handle_befueller(message) {
         if (message == "OK") {
-            this.statusBefueller = isWaiting;
+            this.befueller.wait();
             
-            if (this.statusGreifer == isWaitingNext && this.order_greifer_next != null) {
+            if (this.greifer.status == Robot.isWaitingNext) {
+                this.greifer.next_to(this.befueller);
 
-                this.order_befueller = this.order_greifer_next;
-                this.order_greifer_next == null;
+                this.greifer.run_next();
 
-                this.ric.send("greifarm","serial","GO");
-                this.statusGreifer = isRunningNext;
+                this.befueller.run();
             }
 
         } else if (message == "NEXT") {
-            this.statusBefueller = isWaitingNext;
+            this.befueller.wait_next();
 
-            this.ric.send("befueller","serial","GO");
-            this.statusBefueller = isRunningNext;
+            if (this.bedeckler.status == Robot.isWaiting) {
+                this.befueller.move_next_to(this.bedeckler);
+
+                this.befueller.run_next();
+
+                this.bedeckler.run();
+            }
+            
         }
     }
     
+    handle_bedeckler(message) {
+
+        if (message == "OK") {
+            this.bedeckler.wait();
+            
+            if (this.befueller.status == Robot.isWaitingNext) {
+                this.befueller.next_to(this.bedeckler);
+
+                this.befueller.run_next();
+
+                this.bedeckler.run();
+            }
+
+        } else if (message == "NEXT") {
+            this.bedeckler.wait_next();
+
+            //TEst
+            this.bedeckler.run_next();
+            
+        }
+
+    }
 }
 
 let mfc = new MFC();
