@@ -1,0 +1,24 @@
+{
+  "name": "mfc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "mfc.js",
+  "dependencies": {
+    "bufferutil": "^4.0.6",
+    "ws": "^8.7.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pdrRobotik/mfc.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pdrRobotik/mfc/issues"
+  },
+  "homepage": "https://github.com/pdrRobotik/mfc#readme"
+}
