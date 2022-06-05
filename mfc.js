@@ -124,7 +124,7 @@ class MFC {
 
             if (this.bestell_queque.length > 0) {
                 this.bestell_queque.push({id: this.order_nummer, color: message});
-                this.ric.send("bestell","websocket", this.order_nummer);
+                this.ric.send("bestell","websocket", this.order_nummer + "," + message);
                 this.order_nummer++;
 
                 let order = this.bestell_queque.shift();
@@ -133,7 +133,7 @@ class MFC {
                 this.greifer.run(order.color);
             } else {
                 let order = {id: this.order_nummer, color: message};
-                this.ric.send("bestell","websocket", this.order_nummer);
+                this.ric.send("bestell","websocket", this.order_nummer+ "," + message);
                 this.order_nummer++;
 
                 this.greifer.order = order;
@@ -143,7 +143,7 @@ class MFC {
         } else {
 
             this.bestell_queque.push({id: this.order_nummer, color: message})
-            this.ric.send("bestell","websocket", this.order_nummer);
+            this.ric.send("bestell","websocket", this.order_nummer+ "," + message);
             this.order_nummer++;
         }
     }
