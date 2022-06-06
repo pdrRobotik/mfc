@@ -54,6 +54,75 @@ Robot.isWaiting = 0;
 Robot.isRunning = 1;
 Robot.isWaitingNext = 2;
 Robot.isRunningNext = 3;
+//Für HRL
+Robot.isFull = 4;
+
+class RobotHRL {
+
+    constructor(name,group,handler,status) {
+        this.mfc = null;
+
+        this.status = status;
+        this.name = name;
+        this.group = group;
+
+        this.handler = handler;
+
+        //Tempory order store
+        this.order = null;
+        this.order_array = new Array(6).fill(null);
+        this.amount_filled = 0;
+    }
+
+    setMFC(mfc) {
+        this.mfc = mfc;
+    }
+
+    wait() {
+        this.status = Robot.isWaiting;
+    }
+
+    isReady() {
+        if (this.status != Robot.isWaiting) return false;
+
+        if (this.amount_filled < this.order_array.length) {
+            this.status = Robot.isFull;
+            return false;
+        }
+
+        return true;
+    }
+
+    store_set_order() {
+        for (let i=0; i < this.order_array.length; i++) {
+            if (this.order_array[i] == null) {
+                this.order_array[i] = this.order;
+                this.amount_filled++;
+                this.mfc.ric.send("abhol","websocket", order.id + "," + order.color + ",a,"+i);
+                this.order = null;
+
+                this.status = Robot.isRunning;
+                this.mfc.ric.send(this.name,this.group,String(00+i));
+
+                return;
+            }
+        }
+
+        //Wenn oben nich geklappt hat ist es voll.
+        this.status = Robot.isFull;
+    }
+
+    retrive(fach) {
+        let order = this.order_array[fach];
+        this.order_array[fach] = null;
+        this.amount_filled -= 1;
+
+        this.status = Robot.isRunning;
+        this.mfc.ric.send(this.name,this.group,String(10+i));
+
+        this.mfc.ric.send("abhol","websocket", order.id + "," + order.color + ",n,"+fach);
+    }
+}
 
 class MFC {
     constructor() {
@@ -62,7 +131,7 @@ class MFC {
         this.handlersSerial = new Map();
 
         this.register_websocket("bestell",this.handle_bestell.bind(this));
-
+        this.register_websocket("abhol",this.handle_abhol.bind(this));
 
         this.bestell_queque = [];
         this.order_nummer = 0;
@@ -78,6 +147,9 @@ class MFC {
 
         this.aufzug = new Robot("aufzug","serial",this.handle_aufzug.bind(this),Robot.isWaiting);
         this.register(this.aufzug);
+
+        this.hrl = new Robot("hrl","serial",this.handle_hrl(this),Robot.isWaiting);
+        this.register(this.hrl);
 
     }
 
@@ -116,7 +188,7 @@ class MFC {
 
         }
     }
-    
+
 
     handle_bestell(message) {
         
@@ -130,6 +202,7 @@ class MFC {
                 let order = this.bestell_queque.shift();
                 this.greifer.order = order;
 
+                this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
                 this.greifer.run(order.color);
             } else {
                 let order = {id: this.order_nummer, color: message};
@@ -138,6 +211,7 @@ class MFC {
 
                 this.greifer.order = order;
                 
+                this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
                 this.greifer.run(order.color);
             }
         } else {
@@ -157,6 +231,7 @@ class MFC {
 
                 this.greifer.order = order;
                 
+                this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
                 this.greifer.run(order.color);
             }
         } else if (message == "NEXT") {
@@ -244,11 +319,58 @@ class MFC {
         } else if (message == "NEXT") {
             this.aufzug.wait_next();
 
-            this.aufzug.run_next();
+            if (this.hrl.isReady()) {
+                this.aufzug.move_next_to(this.hrl);
+
+                this.aufzug.run_next();
+
+                this.hrl.store_set_order();
+            }
+
         }
 
     }
 
+    handle_hrl(message) {
+
+        if (message == "OK") {
+            this.hrl.wait();
+
+            if (this.hrl.toRetrive != null) {
+
+                this.hrl.retrive(this.hrl.toRetrive);
+                this.hrl.toRetrive = null;
+
+            } else if (this.hrl.isReady() && this.aufzug.status == Robot.isWaitingNext) {
+                this.aufzug.move_next_to(this.hrl);
+
+                this.aufzug.run_next();
+
+                this.hrl.store_set_order();
+            }
+
+        }
+
+    }
+
+    handle_abhol(message) {
+        if (message == "resend") {
+            for (let i=0; i < this.hrl.order_array.length; i++) {
+                let o = this.hrl.order_array[i];
+                if (o != null) 
+                    this.ric.send("abhol","websocket", o.id + "," + o.color + ",a,"+i);
+            }
+        } else {
+
+            if (this.hrl.isReady()) {
+                this.hrl.retrive(Number(message));
+            } else {
+                this.hrl.toRetrive = Number(message);
+            }
+            
+        }
+
+    }
 
 }
 
