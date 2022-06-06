@@ -83,13 +83,14 @@ class RobotHRL {
     }
 
     isReady() {
+        console.log(0);
         if (this.status != Robot.isWaiting) return false;
-
-        if (this.amount_filled < this.order_array.length) {
+        console.log(1);
+        if (this.amount_filled >= this.order_array.length) {
             this.status = Robot.isFull;
             return false;
         }
-
+        console.log(2);
         return true;
     }
 
@@ -98,11 +99,11 @@ class RobotHRL {
             if (this.order_array[i] == null) {
                 this.order_array[i] = this.order;
                 this.amount_filled++;
-                this.mfc.ric.send("abhol","websocket", order.id + "," + order.color + ",a,"+i);
+                this.mfc.ric.send("abhol","websocket", this.order.id + "," + this.order.color + ",a,"+i);
                 this.order = null;
 
                 this.status = Robot.isRunning;
-                this.mfc.ric.send(this.name,this.group,String(00+i));
+                this.mfc.ric.send(this.name,this.group,String(10+i));
 
                 return;
             }
@@ -148,7 +149,7 @@ class MFC {
         this.aufzug = new Robot("aufzug","serial",this.handle_aufzug.bind(this),Robot.isWaiting);
         this.register(this.aufzug);
 
-        this.hrl = new Robot("hrl","serial",this.handle_hrl(this),Robot.isWaiting);
+        this.hrl = new RobotHRL("hrl","serial",this.handle_hrl.bind(this),Robot.isWaiting);
         this.register(this.hrl);
 
     }
@@ -321,11 +322,12 @@ class MFC {
 
             if (this.hrl.isReady()) {
                 this.aufzug.move_next_to(this.hrl);
-
+                console.log("Test1");
                 this.aufzug.run_next();
-
+                console.log("Test2");
                 this.hrl.store_set_order();
             }
+            console.log("test3");
 
         }
 
