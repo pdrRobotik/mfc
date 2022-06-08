@@ -320,20 +320,21 @@ class MFC {
         } else if (message == "NEXT") {
             this.aufzug.wait_next();
 
-            if (this.hrl.isReady()) {
+            /*if (this.hrl.isReady()) {
                 this.aufzug.move_next_to(this.hrl);
-                console.log("Test1");
+                
                 this.aufzug.run_next();
-                console.log("Test2");
+                
                 this.hrl.store_set_order();
-            }
-            console.log("test3");
+            }*/
+            this.aufzug.run_next();
+            
 
         }
 
     }
 
-    handle_hrl(message) {
+    /*handle_hrl(message) {
 
         if (message == "OK") {
             this.hrl.wait();
@@ -353,9 +354,9 @@ class MFC {
 
         }
 
-    }
+    }*/
 
-    handle_abhol(message) {
+    /*handle_abhol(message) {
         if (message == "resend") {
             for (let i=0; i < this.hrl.order_array.length; i++) {
                 let o = this.hrl.order_array[i];
@@ -372,7 +373,7 @@ class MFC {
             
         }
 
-    }
+    }*/
 
 }
 
