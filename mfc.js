@@ -99,7 +99,7 @@ class RobotHRL {
             if (this.order_array[i] == null) {
                 this.order_array[i] = this.order;
                 this.amount_filled++;
-                this.mfc.ric.send("abhol","websocket", this.order.id + "," + this.order.color + ",a,"+i);
+                //this.mfc.ric.send("abhol","websocket", this.order.id + "," + this.order.color + ",a,"+i);
                 this.order = null;
 
                 this.status = Robot.isRunning;
@@ -121,7 +121,7 @@ class RobotHRL {
         this.status = Robot.isRunning;
         this.mfc.ric.send(this.name,this.group,String(10+i));
 
-        this.mfc.ric.send("abhol","websocket", order.id + "," + order.color + ",n,"+fach);
+        //this.mfc.ric.send("abhol","websocket", order.id + "," + order.color + ",n,"+fach);
     }
 }
 
@@ -132,7 +132,7 @@ class MFC {
         this.handlersSerial = new Map();
 
         this.register_websocket("bestell",this.handle_bestell.bind(this));
-        this.register_websocket("abhol",this.handle_abhol.bind(this));
+        //this.register_websocket("abhol",this.handle_abhol.bind(this));
 
         this.bestell_queque = [];
         this.order_nummer = 0;
@@ -203,7 +203,7 @@ class MFC {
                 let order = this.bestell_queque.shift();
                 this.greifer.order = order;
 
-                this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
+                //this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
                 this.greifer.run(order.color);
             } else {
                 let order = {id: this.order_nummer, color: message};
@@ -212,7 +212,7 @@ class MFC {
 
                 this.greifer.order = order;
                 
-                this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
+                //this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
                 this.greifer.run(order.color);
             }
         } else {
@@ -232,7 +232,7 @@ class MFC {
 
                 this.greifer.order = order;
                 
-                this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
+                //this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
                 this.greifer.run(order.color);
             }
         } else if (message == "NEXT") {
