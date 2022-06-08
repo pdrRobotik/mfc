@@ -149,8 +149,8 @@ class MFC {
         this.aufzug = new Robot("aufzug","serial",this.handle_aufzug.bind(this),Robot.isWaiting);
         this.register(this.aufzug);
 
-        this.hrl = new RobotHRL("hrl","serial",this.handle_hrl.bind(this),Robot.isWaiting);
-        this.register(this.hrl);
+        //this.hrl = new RobotHRL("hrl","serial",this.handle_hrl.bind(this),Robot.isWaiting);
+        //this.register(this.hrl);
 
     }
 
