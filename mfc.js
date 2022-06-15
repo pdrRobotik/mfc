@@ -99,11 +99,11 @@ class RobotHRL {
             if (this.order_array[i] == null) {
                 this.order_array[i] = this.order;
                 this.amount_filled++;
-                //this.mfc.ric.send("abhol","websocket", this.order.id + "," + this.order.color + ",a,"+i);
+                this.mfc.ric.send("abhol","websocket", this.order.id + "," + this.order.color + ",a,"+i);
                 this.order = null;
 
                 this.status = Robot.isRunning;
-                this.mfc.ric.send(this.name,this.group,String(10+i));
+                this.mfc.ric.send(this.name,this.group,String(i));
 
                 return;
             }
@@ -121,7 +121,7 @@ class RobotHRL {
         this.status = Robot.isRunning;
         this.mfc.ric.send(this.name,this.group,String(10+i));
 
-        //this.mfc.ric.send("abhol","websocket", order.id + "," + order.color + ",n,"+fach);
+        this.mfc.ric.send("abhol","websocket", order.id + "," + order.color + ",n,"+fach);
     }
 }
 
@@ -132,7 +132,7 @@ class MFC {
         this.handlersSerial = new Map();
 
         this.register_websocket("bestell",this.handle_bestell.bind(this));
-        //this.register_websocket("abhol",this.handle_abhol.bind(this));
+        this.register_websocket("abhol",this.handle_abhol.bind(this));
 
         this.bestell_queque = [];
         this.order_nummer = 0;
@@ -149,8 +149,8 @@ class MFC {
         this.aufzug = new Robot("aufzug","serial",this.handle_aufzug.bind(this),Robot.isWaiting);
         this.register(this.aufzug);
 
-        //this.hrl = new RobotHRL("hrl","serial",this.handle_hrl.bind(this),Robot.isWaiting);
-        //this.register(this.hrl);
+        this.hrl = new RobotHRL("hrl","serial",this.handle_hrl.bind(this),Robot.isWaiting);
+        this.register(this.hrl);
 
     }
 
@@ -203,7 +203,7 @@ class MFC {
                 let order = this.bestell_queque.shift();
                 this.greifer.order = order;
 
-                //this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
+                this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
                 this.greifer.run(order.color);
             } else {
                 let order = {id: this.order_nummer, color: message};
@@ -212,7 +212,7 @@ class MFC {
 
                 this.greifer.order = order;
                 
-                //this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
+                this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
                 this.greifer.run(order.color);
             }
         } else {
@@ -232,7 +232,7 @@ class MFC {
 
                 this.greifer.order = order;
                 
-                //this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
+                this.ric.send("abhol","websocket", order.id + "," + order.color + ",p,0");
                 this.greifer.run(order.color);
             }
         } else if (message == "NEXT") {
@@ -320,21 +320,20 @@ class MFC {
         } else if (message == "NEXT") {
             this.aufzug.wait_next();
 
-            /*if (this.hrl.isReady()) {
+            if (this.hrl.isReady()) {
                 this.aufzug.move_next_to(this.hrl);
-                
+                console.log("Test1");
                 this.aufzug.run_next();
-                
+                console.log("Test2");
                 this.hrl.store_set_order();
-            }*/
-            this.aufzug.run_next();
-            
+            }
+            console.log("test3");
 
         }
 
     }
 
-    /*handle_hrl(message) {
+    handle_hrl(message) {
 
         if (message == "OK") {
             this.hrl.wait();
@@ -354,9 +353,9 @@ class MFC {
 
         }
 
-    }*/
+    }
 
-    /*handle_abhol(message) {
+    handle_abhol(message) {
         if (message == "resend") {
             for (let i=0; i < this.hrl.order_array.length; i++) {
                 let o = this.hrl.order_array[i];
@@ -373,7 +372,7 @@ class MFC {
             
         }
 
-    }*/
+    }
 
 }
 
